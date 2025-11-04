@@ -85,38 +85,65 @@ char **split_line(char *line)
 
 
 /**
-	* run_command - Fork + execve a command (with arguments).
-	* @cmdline: command line string.
-	* Return: Child exit status; 127/126 on failure.
-	*/
+ * run_command - Fork + execve a command with arguments.
+ * @cmdline: Command line string.
+ * Return: Child exit status; 127/126 on failure.
+ */
 int run_command(const char *cmdline)
 {
-	int status = 0;
-	char **argv;
-	char *line_copy;
-	size_t i;
+    int status = 0;
+    char **argv = NULL;
+    char *line_copy = NULL;
+    size_t i;
 
-	if (!cmdline || *cmdline == '\0')
-	return (0);
+    if (!cmdline || *cmdline == '\0')
+        return (0);
 
-	line_copy = strdup(cmdline);
-	argv = split_line(line_copy);
-	if (!argv || !argv[0])
-	{
-	free(line_copy);
-	free(argv);
-	return (0);
-	}
+    line_copy = strdup(cmdline);
+    if (!line_copy)
+        return (1);
 
-	status = execute_child(argv);
+    argv = split_line(line_copy);
+    if (!argv || !argv[0])
+    {
+        free(line_copy);
+        free(argv);
+        return (0);
+    }
 
-	for (i = 0; argv[i]; i++)
-	free(argv[i]);
-	free(argv);
-	free(line_copy);
+    pid_t pid = fork();
+    if (pid < 0)
+    {
+        perror("./shell");
+        free(line_copy);
+        for (i = 0; argv[i]; i++)
+            free(argv[i]);
+        free(argv);
+        return (1);
+    }
 
-	return (status);
+    if (pid == 0)
+    {
+        execve(argv[0], argv, environ);
+        perror("./shell");
+        _exit(errno == EACCES ? 126 : 127);
+    }
+    else
+    {
+        if (waitpid(pid, &status, 0) == -1)
+            perror("./shell");
+    }
+
+    for (i = 0; argv[i]; i++)
+        free(argv[i]);
+    free(argv);
+    free(line_copy);
+
+    if (WIFEXITED(status))
+        return (WEXITSTATUS(status));
+    return (1);
 }
+
 
 /**
 	* main - Simple shell 0.1: prompt (only if tty) → read → parse → run.
