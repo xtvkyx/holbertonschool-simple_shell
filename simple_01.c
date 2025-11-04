@@ -131,11 +131,25 @@ int shell_loop(void)
 
 		cmd_count++; /* count every non-empty command line */
 
-		/* Builtins are not required in 0.3; just allow "exit" for convenience */
-		if (strcmp(argv_exec[0], "exit") == 0)
-			break;
+		/* Built-ins */
+                if (strcmp(argv_exec[0], "exit") == 0)
+                        break;
+
+                if (strcmp(argv_exec[0], "env") == 0)
+                {
+                        int i;
+                        for (i = 0; environ[i]; i++)
+                        { 
+                                 write(STDOUT_FILENO, environ[i], strlen(environ[i]));
+                                 write(STDOUT_FILENO, "\n", 1);
+                        }
+                        last_status = 0;
+                        continue;
+                }
+
 
 		/* Resolve before forking; skip fork if not found */
+
 		resolved = find_path(argv_exec[0]);
 		if (!resolved)
 		{
