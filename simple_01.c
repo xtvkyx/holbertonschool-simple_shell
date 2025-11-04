@@ -84,7 +84,6 @@ char **split_line(char *line)
 	*/
 int run_command(const char *cmdline)
 {
-	pid_t pid;
 	int status = 0;
 	char **argv;
 	char *line_copy;

@@ -1,4 +1,4 @@
-#include "simple_01.c"
+#include "simple_01.h"
 /**
 	* execute_child - Fork and execute a given arg.
 	*  @argv: Argument vector.
