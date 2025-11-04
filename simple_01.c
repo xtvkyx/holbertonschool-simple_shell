@@ -49,33 +49,40 @@ char *first_token(char *line)
 }
 
 /**
-	* split_line - Split a line into argv array (space/tab separated).
-	* @line: Input string.
-	* Return: NULL-terminated array of malloc'd tokens.
-	*/
+ * split_line - Split a line into argv array (space/tab separated).
+ * @line: Input string.
+ * Return: NULL-terminated array of malloc'd tokens.
+ */
 char **split_line(char *line)
 {
-	char **argv = NULL;
-	char *token;
-	size_t count = 0;
+    char **argv = NULL;
+    char *token;
+    size_t count = 0, i;
+    char **new_argv;
 
-	token = strtok(line, " \t");
-	while (token)
-	{
-		argv = realloc(argv, sizeof(char *) * (count + 2));
-		if (!argv)
-			return (NULL);
+    token = strtok(line, " \t");
+    while (token)
+    {
+        new_argv = malloc(sizeof(char *) * (count + 2));
+        if (!new_argv)
+            return (NULL);
 
-		argv[count] = strdup(token);
-		count++;
-		token = strtok(NULL, " \t");
-	}
+        for (i = 0; i < count; i++)
+            new_argv[i] = argv[i];
 
-	if (argv)
-		argv[count] = NULL;
+        free(argv);
 
-	return (argv);
+        new_argv[count] = strdup(token);
+        new_argv[count + 1] = NULL;
+
+        argv = new_argv;
+        count++;
+        token = strtok(NULL, " \t");
+    }
+
+    return (argv);
 }
+
 
 /**
 	* run_command - Fork + execve a command (with arguments).
