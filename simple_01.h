@@ -18,7 +18,7 @@ extern char **environ;
 /* String / parsing */
 char *trim_whitespace(char *s);
 int parse_input(char *cmd, char **argv_exec);
-void shell_loop(void);
+int shell_loop(void);
 
 /* PATH + exec */
 char *find_path(char *cmd);

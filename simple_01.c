@@ -1,10 +1,11 @@
 #include "simple_01.h"
 
+#define HSH_NAME "./hsh"
+
 /**
  * trim_whitespace - Remove leading and trailing spaces/tabs/newlines
  * @s: Input string
- *
- * Return: Pointer to trimmed string (inside the same buffer)
+ * Return: Pointer to trimmed string (in the same buffer)
  */
 char *trim_whitespace(char *s)
 {
@@ -25,7 +26,6 @@ char *trim_whitespace(char *s)
 		*end = '\0';
 		end--;
 	}
-
 	return (s);
 }
 
@@ -33,7 +33,6 @@ char *trim_whitespace(char *s)
  * parse_input - Tokenize a command line into argv-like array
  * @cmd: Input command (modified in place)
  * @argv_exec: Output array for tokens (MAX_ARGS size)
- *
  * Return: Number of tokens parsed
  */
 int parse_input(char *cmd, char **argv_exec)
@@ -48,24 +47,64 @@ int parse_input(char *cmd, char **argv_exec)
 		token = strtok(NULL, " \t");
 	}
 	argv_exec[i] = NULL;
-
 	return (i);
 }
 
+/* -------- tiny helpers for exact error format without printf -------- */
+
+/**
+ * utoa_dec - Convert unsigned long to decimal string in @buf
+ * @v: value
+ * @buf: output buffer (at least 32 bytes)
+ * Return: pointer to start of the number inside @buf
+ */
+static char *utoa_dec(unsigned long v, char *buf)
+{
+	int i = 31;
+
+	buf[i--] = '\0';
+	if (v == 0)
+		buf[i--] = '0';
+	while (v > 0 && i >= 0)
+	{
+		buf[i--] = (char)('0' + (v % 10));
+		v /= 10;
+	}
+	return (&buf[i + 1]);
+}
+
+/**
+ * write_not_found - Print: "./hsh: N: cmd: not found\n" (checker format)
+ * @count: command index starting at 1
+ * @cmd: command token
+ */
+static void write_not_found(unsigned long count, const char *cmd)
+{
+	char num[32];
+	char *pnum = utoa_dec(count, num);
+
+	write(STDERR_FILENO, HSH_NAME, sizeof(HSH_NAME) - 1);
+	write(STDERR_FILENO, ": ", 2);
+	write(STDERR_FILENO, pnum, strlen(pnum));
+	write(STDERR_FILENO, ": ", 2);
+	write(STDERR_FILENO, cmd, strlen(cmd));
+	write(STDERR_FILENO, ": not found\n", 12);
+}
+
+/* -------------------------- main loop -------------------------- */
+
 /**
  * shell_loop - REPL: prompt → read → parse → resolve → (fork &) exec
- *
- * Notes:
- * - No fork when command is not found (resolve first).
- * - Supports arguments.
- * - Works in interactive and non-interactive modes.
+ * Return: last command status (used as program exit code)
  */
-void shell_loop(void)
+int shell_loop(void)
 {
 	char *line = NULL, *cmd, *resolved;
 	size_t cap = 0;
 	ssize_t n;
 	char *argv_exec[MAX_ARGS];
+	int last_status = 0;
+	unsigned long cmd_count = 0;
 
 	while (1)
 	{
@@ -87,35 +126,37 @@ void shell_loop(void)
 		if (!cmd || *cmd == '\0')
 			continue;
 
-		/* example: builtins can be added later; not required in 0.3 */
-		if (strcmp(cmd, "exit") == 0)
+		if (parse_input(cmd, argv_exec) == 0)
+			continue;
+
+		cmd_count++; /* count every non-empty command line */
+
+		/* Builtins are not required in 0.3; just allow "exit" for convenience */
+		if (strcmp(argv_exec[0], "exit") == 0)
 			break;
 
-		if (parse_input(cmd, argv_exec) > 0)
+		/* Resolve before forking; skip fork if not found */
+		resolved = find_path(argv_exec[0]);
+		if (!resolved)
 		{
-			resolved = find_path(argv_exec[0]);
-			if (!resolved)
-			{
-				/* "<cmd>: not found\n" without dprintf */
-				write(STDERR_FILENO, argv_exec[0], strlen(argv_exec[0]));
-				write(STDERR_FILENO, ": not found\n", 12);
-				continue;
-			}
-			argv_exec[0] = resolved;
-			(void)execute_child(argv_exec);
+			write_not_found(cmd_count, argv_exec[0]);
+			last_status = 127; /* required exit code for "not found" */
+			continue;
 		}
+
+		argv_exec[0] = resolved;
+		last_status = execute_child(argv_exec);
 	}
 
 	free(line);
+	return (last_status);
 }
 
 /**
  * main - Entry point for the simple shell (0.3)
- *
- * Return: Exit status from last executed command or 0
+ * Return: Exit status from last executed command
  */
 int main(void)
 {
-	shell_loop();
-	return (0);
+	return (shell_loop());
 }
