@@ -1,35 +1,33 @@
 #include "simple_01.h"
+
 /**
-	* execute_child - Fork and execute a given arg.
-	*  @argv: Argument vector.
-	*  Return: Exit status.
-	*/
+ * execute_child - Fork and execve using argv[0] as a fully resolved path
+ * @argv: argument vector; argv[0] must be an executable path
+ * Return: child's exit status (0–255), 126 on EACCES, 127 on ENOENT
+ */
 int execute_child(char **argv)
 {
-	pid_t pid;
-	int status = 0;
+    pid_t pid;
+    int status = 0;
 
-	pid = fork();
-	if (pid < 0)
-	{
-	perror("./shell");
-	return (1);
-	}
+    pid = fork();
+    if (pid < 0)
+    {
+        perror("./hsh");
+        return (1);
+    }
 
-	if (pid == 0)
-	{
-	execve(argv[0], argv, environ);
-	perror("./shell");
-	_exit(errno == EACCES ? 126 : 127);
-	}
-	else
-	{
-	if (waitpid(pid, &status, 0) == -1)
-	perror("./shell");
-	}
+    if (pid == 0)
+    {
+        execve(argv[0], argv, environ);
+        perror("./hsh");
+        _exit(errno == EACCES ? 126 : 127);
+    }
+    else
+    {
+        if (waitpid(pid, &status, 0) == -1)
+            perror("./hsh");
+    }
 
-	if (WIFEXITED(status))
-	return (WEXITSTATUS(status));
-
-	return (1);
+    return (WIFEXITED(status) ? WEXITSTATUS(status) : 1);
 }
