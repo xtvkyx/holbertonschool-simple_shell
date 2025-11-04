@@ -1,5 +1,6 @@
 #ifndef SIMPLE_01_H
 #define SIMPLE_01_H
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -14,11 +15,16 @@
 
 extern char **environ;
 
+/* String / parsing */
 char *trim_whitespace(char *s);
-int   parse_input(char *cmd, char **argv_exec);
-void  shell_loop(void);
+int parse_input(char *cmd, char **argv_exec);
+void shell_loop(void);
 
+/* PATH + exec */
 char *find_path(char *cmd);
-int   execute_child(char **argv);
+int execute_child(char **argv);
+
+/* Environment helper (no getenv) */
+char *env_get(const char *name);
 
 #endif /* SIMPLE_01_H */
