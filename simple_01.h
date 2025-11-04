@@ -15,5 +15,6 @@ extern char **environ;
 char *read_line(void);
 char *first_token(char *line);
 int   run_command(const char *cmd);
+char *find_path(char *cmd);
 
 #endif /* SIMPLE_01_H */
