@@ -1,151 +1,118 @@
-#include "simple_01.h"
-int execute_child(char **argv);
-
-/**
-	* read_line - Read one line from stdin using getline.
-	* Return: malloc'd buffer or NULL on EOF/error.
-	*/
-char *read_line(void)
-{
-	char *line = NULL;
-	size_t cap = 0;
-	ssize_t n = getline(&line, &cap, stdin);
-
-	if (n == -1)
-	{
-		free(line);
-		return (NULL);
-	}
-
-	if (n > 0 && line[n - 1] == '\n')
-		line[n - 1] = '\0';
-
-	return (line);
-}
-
-/**
-	* first_token - Return the first non-space word.
-	* @line: Buffer (modified in place).
-	* Return: Pointer to first word or NULL if empty.
-	*/
-char *first_token(char *line)
-{
-	char *s, *e;
-
-	if (!line)
-		return (NULL);
-
-	for (s = line; *s == ' ' || *s == '\t'; s++)
-		;
-
-	if (*s == '\0')
-		return (NULL);
-
-	for (e = s; *e && *e != ' ' && *e != '\t'; e++)
-		;
-	*e = '\0';
-
-	return (s);
-}
-
-/**
- * split_line - Split a line into argv array (space/tab separated).
- * @line: Input string.
- * Return: NULL-terminated array of malloc'd tokens.
+/* simple_shell.c - Simple shell (supports arguments, uses execve)
+ * Compile:
+ * gcc -Wall -Werror -Wextra -pedantic -std=gnu89 simple_shell.c -o simple_shell
  */
-char **split_line(char *line)
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <string.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <errno.h>
+
+extern char **environ;
+
+#define PROMPT "$ "
+#define MAX_ARGS 64
+
+static char *trim_whitespace(char *s)
 {
-    char **argv = NULL;
-    char *token;
-    size_t count = 0, i;
-    char **new_argv;
+    char *end;
 
-    token = strtok(line, " \t");
-    while (token)
+    if (s == NULL)
+        return NULL;
+
+    while (*s == ' ' || *s == '\t' || *s == '\n')
+        s++;
+
+    if (*s == '\0')
+        return s;
+
+    end = s + strlen(s) - 1;
+    while (end > s && (*end == ' ' || *end == '\t' || *end == '\n'))
     {
-        new_argv = malloc(sizeof(char *) * (count + 2));
-        if (!new_argv)
-            return (NULL);
-
-        for (i = 0; i < count; i++)
-            new_argv[i] = argv[i];
-
-        free(argv);
-
-        new_argv[count] = strdup(token);
-        new_argv[count + 1] = NULL;
-
-        argv = new_argv;
-        count++;
-        token = strtok(NULL, " \t");
+        *end = '\0';
+        end--;
     }
-
-    return (argv);
+    return s;
 }
 
-
-/**
- * run_command - Fork + execve a command (with arguments).
- * @cmdline: command line string.
- * Return: Child exit status; 127/126 on failure.
- */
-int run_command(const char *cmdline)
-{
-    int status = 0;
-    char **argv;
-    char *line_copy;
-    size_t i;
-
-    if (!cmdline || *cmdline == '\0')
-        return (0);
-
-    line_copy = strdup(cmdline);
-    argv = split_line(line_copy);
-    if (!argv || !argv[0])
-    {
-        free(line_copy);
-        free(argv);
-        return (0);
-    }
-
-    status = execute_child(argv);
-
-    for (i = 0; argv[i]; i++)
-        free(argv[i]);
-    free(argv);
-    free(line_copy);
-
-    return (status);
-}
-
-
-/**
-	* main - Simple shell 0.1: prompt (only if tty) → read → parse → run.
-	* Return: Last command status or 0.
-	*/
 int main(void)
 {
-	int status = 0;
-	char *line, *cmd;
+    char *line = NULL;
+    size_t linecap = 0;
+    ssize_t linelen;
+    char *argv_exec[MAX_ARGS];
+    pid_t child;
+    int status;
+    int i;
+    char *token;
+    char *cmd;
 
-	while (1)
-	{
-		if (isatty(STDIN_FILENO))
-			write(STDOUT_FILENO, "#cisfun$ ", 9);
+    while (1)
+    {
+        if (isatty(STDIN_FILENO))
+        {
+            if (write(STDOUT_FILENO, PROMPT, strlen(PROMPT)) == -1)
+            {
+                /* non-fatal, continue */
+            }
+        }
 
-		line = read_line();
-		if (!line)
-			break;
+        linelen = getline(&line, &linecap, stdin);
+        if (linelen == -1)
+        {
+            if (isatty(STDIN_FILENO))
+                write(STDOUT_FILENO, "\n", 1);
+            break;
+        }
 
-		cmd = first_token(line);
-		if (cmd)
-			status = run_command(cmd);
+        if (linelen > 0 && line[linelen - 1] == '\n')
+            line[linelen - 1] = '\0';
 
-		free(line);
-	}
+        cmd = trim_whitespace(line);
 
-	if (isatty(STDIN_FILENO))
-		write(STDOUT_FILENO, "\n", 1);
+        if (cmd == NULL || *cmd == '\0')
+            continue;
 
-	return (status);
+        if (strcmp(cmd, "exit") == 0)
+            break;
+
+        i = 0;
+        token = strtok(cmd, " \t");
+        while (token != NULL && i < (MAX_ARGS - 1))
+        {
+            argv_exec[i++] = token;
+            token = strtok(NULL, " \t");
+        }
+        argv_exec[i] = NULL;
+
+        if (argv_exec[0] == NULL)
+            continue;
+
+        child = fork();
+        if (child == -1)
+        {
+            perror("fork");
+            continue;
+        }
+
+        if (child == 0)
+        {
+            if (execve(argv_exec[0], argv_exec, environ) == -1)
+            {
+                dprintf(STDERR_FILENO, "%s: %s\n", argv_exec[0], strerror(errno));
+                _exit(EXIT_FAILURE);
+            }
+        }
+        else
+        {
+            if (waitpid(child, &status, 0) == -1)
+                perror("waitpid");
+        }
+    }
+
+    free(line);
+    return 0;
 }
