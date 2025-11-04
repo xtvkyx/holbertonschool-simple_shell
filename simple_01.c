@@ -85,24 +85,21 @@ char **split_line(char *line)
 
 
 /**
- * run_command - Fork + execve a command with arguments.
- * @cmdline: Command line string.
+ * run_command - Fork + execve a command (with arguments).
+ * @cmdline: command line string.
  * Return: Child exit status; 127/126 on failure.
  */
 int run_command(const char *cmdline)
 {
     int status = 0;
-    char **argv = NULL;
-    char *line_copy = NULL;
+    char **argv;
+    char *line_copy;
     size_t i;
 
     if (!cmdline || *cmdline == '\0')
         return (0);
 
     line_copy = strdup(cmdline);
-    if (!line_copy)
-        return (1);
-
     argv = split_line(line_copy);
     if (!argv || !argv[0])
     {
@@ -111,37 +108,14 @@ int run_command(const char *cmdline)
         return (0);
     }
 
-    pid_t pid = fork();
-    if (pid < 0)
-    {
-        perror("./shell");
-        free(line_copy);
-        for (i = 0; argv[i]; i++)
-            free(argv[i]);
-        free(argv);
-        return (1);
-    }
-
-    if (pid == 0)
-    {
-        execve(argv[0], argv, environ);
-        perror("./shell");
-        _exit(errno == EACCES ? 126 : 127);
-    }
-    else
-    {
-        if (waitpid(pid, &status, 0) == -1)
-            perror("./shell");
-    }
+    status = execute_child(argv);
 
     for (i = 0; argv[i]; i++)
         free(argv[i]);
     free(argv);
     free(line_copy);
 
-    if (WIFEXITED(status))
-        return (WEXITSTATUS(status));
-    return (1);
+    return (status);
 }
 
 
