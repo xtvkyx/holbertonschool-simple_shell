@@ -78,32 +78,34 @@ char **split_line(char *line)
 }
 
 /**
-	* run_command - Fork and execve a command with arguments.
-	* @cmdline: Full command line input.
-	* Return: Child exit status (0–255), or 127/126 on failure.
+	* run_command - Fork + execve a command (with arguments).
+	* @cmdline: command line string.
+	* Return: Child exit status; 127/126 on failure.
 	*/
 int run_command(const char *cmdline)
 {
+	pid_t pid;
 	int status = 0;
 	char **argv;
 	char *line_copy;
+	size_t i;
 
 	if (!cmdline || *cmdline == '\0')
-		return (0);
+	return (0);
 
 	line_copy = strdup(cmdline);
 	argv = split_line(line_copy);
 	if (!argv || !argv[0])
 	{
-		free(line_copy);
-		free(argv);
-		return (0);
+	free(line_copy);
+	free(argv);
+	return (0);
 	}
 
 	status = execute_child(argv);
 
-	for (size_t i = 0; argv[i]; i++)
-		free(argv[i]);
+	for (i = 0; argv[i]; i++)
+	free(argv[i]);
 	free(argv);
 	free(line_copy);
 
