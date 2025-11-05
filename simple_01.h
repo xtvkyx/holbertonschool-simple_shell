@@ -15,7 +15,7 @@
 
 extern char **environ;
 
-/* String / parsing */
+/* string / parsing */
 char *trim_whitespace(char *s);
 int parse_input(char *cmd, char **argv_exec);
 int shell_loop(void);
@@ -24,7 +24,14 @@ int shell_loop(void);
 char *find_path(char *cmd);
 int execute_child(char **argv);
 
-/* Environment helper (no getenv) */
+/* env helper (no getenv) */
 char *env_get(const char *name);
+
+/* not-found formatter */
+void write_not_found(unsigned long count, const char *cmd);
+
+/* builtins + runner */
+int try_builtin(char **argv, int *last_status, int *should_exit);
+int run_command_line(char **argv, unsigned long count, int *last_status);
 
 #endif /* SIMPLE_01_H */
