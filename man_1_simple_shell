@@ -1,0 +1,48 @@
+
+### £ man_1_simple_shell
+
+Save this file as **man_1_simple_shell** (no extension):
+
+```man
+.TH simple_shell 1 "October 2025" "Holberton School" "User Commands"
+.SH NAME
+simple_shell \- a simple UNIX command interpreter
+.SH SYNOPSIS
+.B ./hsh
+.br
+Reads commands from standard input and executes them.
+.SH DESCRIPTION
+The simple_shell is a minimal UNIX shell written in C. It reads commands from the user, parses them, and executes them either as built-in commands or by forking a process and executing binaries found in the directories listed in the PATH environment variable.
+
+The shell operates in both interactive and non-interactive modes.
+
+.SH BUILTINS
+.TP
+.B exit
+Exit the shell.
+.TP
+.B env
+Display the current environment variables.
+
+.SH USAGE
+Interactive mode:
+.PP
+.EX
+$ ./hsh
+$ ls -l
+$ pwd
+$ exit
+.EE
+
+Non-interactive mode:
+.PP
+.EX
+$ echo "ls -l" | ./hsh
+$ echo "/bin/ls" | ./hsh
+.EE
+
+.SH RETURN VALUE
+Returns the exit status of the last executed command.
+
+.SH AUTHOR
+Written by Lamis Fahad Aljabli and Raneem Tarik Alsaqat for Holberton School.
