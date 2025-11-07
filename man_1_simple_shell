@@ -4,7 +4,7 @@
 Save this file as **man_1_simple_shell** (no extension):
 
 ```man
-.TH simple_shell 1 "October 2025" "Holberton School" "User Commands"
+.TH simple_shell 1 "November 2025" "Holberton School" "User Commands"
 .SH NAME
 simple_shell \- a simple UNIX command interpreter
 .SH SYNOPSIS
